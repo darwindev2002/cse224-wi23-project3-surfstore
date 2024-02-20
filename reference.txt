@@ -1,0 +1,127 @@
+package surfstore // import "cse224/proj4/pkg/surfstore"
+
+
+CONSTANTS
+
+const CONFIG_DELIMITER string = ","
+const DEFAULT_META_FILENAME string = "index.db"
+const EMPTYFILE_HASHVALUE string = "-1"
+const FILENAME_INDEX int = 0
+const HASH_DELIMITER string = " "
+const HASH_LIST_INDEX int = 2
+const TOMBSTONE_HASHVALUE string = "0"
+const VERSION_INDEX int = 1
+
+FUNCTIONS
+
+func ClientSync(client RPCClient)
+    Implement the logic for a client syncing with the server here.
+
+func ConcatPath(baseDir, fileDir string) string
+    File Path Related
+
+func GetBlockHashBytes(blockData []byte) []byte
+    Hash Related
+
+func GetBlockHashString(blockData []byte) string
+func LoadMetaFromMetaFile(baseDir string) (fileMetaMap map[string]*FileMetaData, e error)
+    LoadMetaFromMetaFile loads the local metadata file into a file meta map.
+    The key is the file's name and the value is the file's metadata. You can use
+    this function to load the index.db file in this project.
+
+func PrintMetaMap(metaMap map[string]*FileMetaData)
+    PrintMetaMap prints the contents of the metadata map. You might find this
+    function useful for debugging.
+
+func WriteMetaFile(fileMetas map[string]*FileMetaData, baseDir string) error
+    WriteMetaFile writes the file meta map back to local metadata file index.db
+
+
+TYPES
+
+type BlockStore struct {
+	BlockMap map[string]*Block
+	UnimplementedBlockStoreServer
+}
+
+func NewBlockStore() *BlockStore
+
+func (bs *BlockStore) GetBlock(ctx context.Context, blockHash *BlockHash) (*Block, error)
+
+func (bs *BlockStore) HasBlocks(ctx context.Context, blockHashesIn *BlockHashes) (*BlockHashes, error)
+    Given a list of hashes “in”, returns a list containing the subset of in that
+    are stored in the key-value store
+
+func (bs *BlockStore) PutBlock(ctx context.Context, block *Block) (*Success, error)
+
+type BlockStoreInterface interface {
+
+	// Get a block based on blockhash
+	GetBlock(ctx context.Context, blockHash *BlockHash) (*Block, error)
+
+	// Put a block
+	PutBlock(ctx context.Context, block *Block) (*Success, error)
+
+	// Given a list of hashes “in”, returns a list containing the
+	// subset of in that are stored in the key-value store
+	HasBlocks(ctx context.Context, blockHashesIn *BlockHashes) (*BlockHashes, error)
+}
+
+type ClientInterface interface {
+	// MetaStore
+	GetFileInfoMap(serverFileInfoMap *map[string]*FileMetaData) error
+	UpdateFile(fileMetaData *FileMetaData, latestVersion *int32) error
+	GetBlockStoreAddr(blockStoreAddr *string) error
+
+	// BlockStore
+	GetBlock(blockHash string, blockStoreAddr string, block *Block) error
+	PutBlock(block *Block, blockStoreAddr string, succ *bool) error
+	HasBlocks(blockHashesIn []string, blockStoreAddr string, blockHashesOut *[]string) error
+}
+
+type MetaStore struct {
+	FileMetaMap    map[string]*FileMetaData
+	BlockStoreAddr string
+	UnimplementedMetaStoreServer
+}
+
+func NewMetaStore(blockStoreAddr string) *MetaStore
+
+func (m *MetaStore) GetBlockStoreAddr(ctx context.Context, _ *emptypb.Empty) (*BlockStoreAddr, error)
+
+func (m *MetaStore) GetFileInfoMap(ctx context.Context, _ *emptypb.Empty) (*FileInfoMap, error)
+
+func (m *MetaStore) UpdateFile(ctx context.Context, fileMetaData *FileMetaData) (*Version, error)
+
+type MetaStoreInterface interface {
+	// Retrieves the server's FileInfoMap
+	GetFileInfoMap(ctx context.Context, _ *emptypb.Empty) (*FileInfoMap, error)
+
+	// Update a file's fileinfo entry
+	UpdateFile(ctx context.Context, fileMetaData *FileMetaData) (*Version, error)
+
+	// Get the the BlockStore address
+	GetBlockStoreAddr(ctx context.Context, _ *emptypb.Empty) (*BlockStoreAddr, error)
+}
+
+type RPCClient struct {
+	MetaStoreAddr string
+	BaseDir       string
+	BlockSize     int
+}
+
+func NewSurfstoreRPCClient(hostPort, baseDir string, blockSize int) RPCClient
+    Create an Surfstore RPC client
+
+func (surfClient *RPCClient) GetBlock(blockHash string, blockStoreAddr string, block *Block) error
+
+func (surfClient *RPCClient) GetBlockStoreAddr(blockStoreAddr *string) error
+
+func (surfClient *RPCClient) GetFileInfoMap(serverFileInfoMap *map[string]*FileMetaData) error
+
+func (surfClient *RPCClient) HasBlocks(blockHashesIn []string, blockStoreAddr string, blockHashesOut *[]string) error
+
+func (surfClient *RPCClient) PutBlock(block *Block, blockStoreAddr string, succ *bool) error
+
+func (surfClient *RPCClient) UpdateFile(fileMetaData *FileMetaData, latestVersion *int32) error
+
