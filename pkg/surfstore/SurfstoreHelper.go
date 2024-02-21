@@ -40,11 +40,12 @@ const createTable string = `create table if not exists indexes (
 		hashValue TEXT
 	);`
 
-const insertTuple string = ``
+const insertTuple string = `insert into indexes (fileName, version, hashIndex, hashValue) VALUES (?, ?, ?, ?);`
 
 // WriteMetaFile writes the file meta map back to local metadata file index.db
 func WriteMetaFile(fileMetas map[string]*FileMetaData, baseDir string) error {
-	// remove index.db file if it exists
+
+	// Remove index.db file if it exists
 	outputMetaPath := ConcatPath(baseDir, DEFAULT_META_FILENAME)
 	if _, err := os.Stat(outputMetaPath); err == nil {
 		e := os.Remove(outputMetaPath)
@@ -52,6 +53,8 @@ func WriteMetaFile(fileMetas map[string]*FileMetaData, baseDir string) error {
 			log.Fatal("Error During Meta Write Back")
 		}
 	}
+
+	// Create new index.db
 	db, err := sql.Open("sqlite3", outputMetaPath)
 	if err != nil {
 		log.Fatal("Error During Meta Write Back")
@@ -61,31 +64,87 @@ func WriteMetaFile(fileMetas map[string]*FileMetaData, baseDir string) error {
 		log.Fatal("Error During Meta Write Back")
 	}
 	statement.Exec()
-	panic("todo")
+
+	// Start writing new meta to index.db
+	insertStatement, err := db.Prepare(insertTuple)
+	if err != nil {
+		log.Fatal("Error During Meta Write Back")
+	}
+	for _, v := range fileMetas {
+		for i, h := range v.BlockHashList {
+			insertStatement.Exec(v.Filename, v.Version, i, h)
+		}
+	}
+
+	return nil
 }
 
 /*
 Reading Local Metadata File Related
 */
-const getDistinctFileName string = ``
+const getDistinctFileName string = `select DISTINCT filename, version from indexes`
 
-const getTuplesByFileName string = ``
+const getTuplesByFileName string = `select hashValue
+																		from indexes
+																		where fileName = ?
+																		order by hashIndex`
 
 // LoadMetaFromMetaFile loads the local metadata file into a file meta map.
 // The key is the file's name and the value is the file's metadata.
 // You can use this function to load the index.db file in this project.
+// TODO optimization: maybe merge into 1 sql request instead of 2? (use "order fileName hashIndex")
 func LoadMetaFromMetaFile(baseDir string) (fileMetaMap map[string]*FileMetaData, e error) {
+
+	// Build metaFile path
 	metaFilePath, _ := filepath.Abs(ConcatPath(baseDir, DEFAULT_META_FILENAME))
+
 	fileMetaMap = make(map[string]*FileMetaData)
+
+	// Check if metaFile path is valid
 	metaFileStats, e := os.Stat(metaFilePath)
 	if e != nil || metaFileStats.IsDir() {
 		return fileMetaMap, nil
 	}
+
+	// Open db and start reading
 	db, err := sql.Open("sqlite3", metaFilePath)
 	if err != nil {
-		log.Fatal("Error When Opening Meta")
+		// log.Fatal("Error When Opening Meta")
+		return fileMetaMap, nil
 	}
-	panic("todo")
+
+	// Get file(Name)s list
+	rows, err := db.Query(getDistinctFileName)
+	if err != nil {
+		return fileMetaMap, nil
+	}
+
+	// Get hashList for each file
+	var fileName string
+	var version int32
+	for rows.Next() {
+
+		rows.Scan(&fileName, &version)
+		hashes, err := db.Query(getTuplesByFileName, fileName)
+		if err != nil {
+			// log.Fatal("Error When Opening Meta")
+			return fileMetaMap, nil
+		}
+
+		var hashesList = make([]string, 0)
+		var tmpHash string
+		for hashes.Next() {
+			rows.Scan(&tmpHash)
+			hashesList = append(hashesList, tmpHash)
+		}
+
+		fileMetaMap[fileName] = &FileMetaData{Filename: fileName, Version: version}
+		fileMetaMap[fileName].BlockHashList = hashesList
+
+	}
+
+	return fileMetaMap, nil
+
 }
 
 /*
