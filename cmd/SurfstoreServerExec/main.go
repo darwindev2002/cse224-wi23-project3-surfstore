@@ -83,11 +83,12 @@ func startServer(hostAddr string, serviceType string, blockStoreAddr string) err
 		surfstore.RegisterBlockStoreServer(grpcServer, surfstore.NewBlockStore())
 	} else { // serviceType == "both"
 		surfstore.RegisterBlockStoreServer(grpcServer, surfstore.NewBlockStore())
-		surfstore.RegisterMetaStoreServer(grpcServer, surfstore.NewMetaStore(blockStoreAddr))
+		surfstore.RegisterMetaStoreServer(grpcServer, surfstore.NewMetaStore(hostAddr))
 	}
 
 	// Start listening on hostAddr
 	listener, err := net.Listen("tcp", hostAddr)
+	log.Printf("Listening on %v, on servive type \"%v\"", hostAddr, serviceType)
 	if err != nil {
 		return err
 	}

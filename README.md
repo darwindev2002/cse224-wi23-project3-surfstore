@@ -162,3 +162,22 @@ make run-metastore
 
 ## Testing 
 On gradescope, only a subset of test cases will be visible, so we highly encourage you to come up with different scenarios like the one described above. You can then match the outcome of your implementation to the expected output based on the theory provided in the writeup.
+
+
+## Testing on local
+We use "clientA" and "clientB" for two distinct base dir for the two clients
+
+Server
+```shell
+go run cmd/SurfstoreServerExec/main.go -s both -p 8080 -l -d
+```
+
+Client A
+```shell
+go run cmd/SurfstoreClientExec/main.go -d localhost:8080 clientA 4096
+```
+
+Client B
+```shell
+go run cmd/SurfstoreClientExec/main.go -d localhost:8080 clientB 4096
+```

@@ -70,4 +70,10 @@ func main() {
 
 	rpcClient := surfstore.NewSurfstoreRPCClient(hostPort, baseDir, blockSize)
 	surfstore.ClientSync(rpcClient)
+	// var metaMap map[string]*surfstore.FileMetaData
+	// rpcClient.GetFileInfoMap(&metaMap)
+	// log.Println(metaMap)
+	// var addr string
+	// rpcClient.GetBlockStoreAddr(&addr)
+	// log.Println(addr)
 }

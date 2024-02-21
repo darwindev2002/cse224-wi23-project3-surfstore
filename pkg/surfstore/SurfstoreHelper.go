@@ -46,6 +46,7 @@ const insertTuple string = `insert into indexes (fileName, version, hashIndex, h
 func WriteMetaFile(fileMetas map[string]*FileMetaData, baseDir string) error {
 
 	// Remove index.db file if it exists
+	// log.Println(fileMetas)
 	outputMetaPath := ConcatPath(baseDir, DEFAULT_META_FILENAME)
 	if _, err := os.Stat(outputMetaPath); err == nil {
 		e := os.Remove(outputMetaPath)
@@ -102,8 +103,18 @@ func LoadMetaFromMetaFile(baseDir string) (fileMetaMap map[string]*FileMetaData,
 
 	// Check if metaFile path is valid
 	metaFileStats, e := os.Stat(metaFilePath)
-	if e != nil || metaFileStats.IsDir() {
+	if os.IsNotExist(e) {
+		_, e = os.Create(metaFilePath)
+		if e != nil {
+			return fileMetaMap, e
+		}
 		return fileMetaMap, nil
+	} else if e != nil {
+		return fileMetaMap, nil
+	}
+
+	if metaFileStats.IsDir() {
+		return fileMetaMap, fmt.Errorf("%v is a directory", metaFilePath)
 	}
 
 	// Open db and start reading
@@ -134,7 +145,7 @@ func LoadMetaFromMetaFile(baseDir string) (fileMetaMap map[string]*FileMetaData,
 		var hashesList = make([]string, 0)
 		var tmpHash string
 		for hashes.Next() {
-			rows.Scan(&tmpHash)
+			hashes.Scan(&tmpHash)
 			hashesList = append(hashesList, tmpHash)
 		}
 

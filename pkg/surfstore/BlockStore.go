@@ -28,10 +28,8 @@ func (bs *BlockStore) GetBlock(ctx context.Context, blockHash *BlockHash) (*Bloc
 
 func (bs *BlockStore) PutBlock(ctx context.Context, block *Block) (*Success, error) {
 
-	h := GetBlockHashString(block.BlockData)
-
-	bs.BlockMap[h] = &Block{BlockSize: block.BlockSize}
-	_ = copy(bs.BlockMap[h].BlockData, block.BlockData)
+	h := GetBlockHashString(block.BlockData[:block.BlockSize])
+	bs.BlockMap[h] = &Block{BlockSize: block.BlockSize, BlockData: block.BlockData}
 
 	return &Success{Flag: true}, nil
 }
