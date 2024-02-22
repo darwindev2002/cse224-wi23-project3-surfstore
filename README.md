@@ -181,3 +181,5 @@ Client B
 ```shell
 go run cmd/SurfstoreClientExec/main.go -d localhost:8080 clientB 4096
 ```
+
+Sample file ```sample_success.txt``` has 4096+1063 bytes

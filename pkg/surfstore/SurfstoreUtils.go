@@ -13,18 +13,22 @@ import (
 func ClientSync(client RPCClient) {
 
 	var blockStoreAddr string
-	client.GetBlockStoreAddr(&blockStoreAddr)
+	err := client.GetBlockStoreAddr(&blockStoreAddr)
+	if err != nil {
+		log.Panicf("Error raised when getting BlockStore addr when sync'ing- %v\n", err)
+	}
+	log.Printf("Utils - ClientSync - Syncing with server at %v\n", blockStoreAddr)
 
 	// Open base dir
 	baseDirStats, err := os.Stat(client.BaseDir)
 	if err != nil || !baseDirStats.IsDir() {
-		log.Panic("Error raised when sync'ing - %v\n", err)
+		log.Panicf("Error raised when sync'ing - %v\n", err)
 	}
 
 	// Open local index (index.db)
 	localIndex, err := LoadMetaFromMetaFile(client.BaseDir)
 	if err != nil {
-		log.Panic("Error raised when sync'ing - %v\n", err)
+		log.Panicf("Error raised when sync'ing - %v\n", err)
 	}
 
 	// Download remote index
@@ -34,7 +38,7 @@ func ClientSync(client RPCClient) {
 	// Get list of files
 	files, err := os.ReadDir(client.BaseDir)
 	if err != nil {
-		log.Panic("Error raised when sync'ing - %v\n", err)
+		log.Panicf("Error raised when sync'ing - %v\n", err)
 	}
 
 	// Update local index
@@ -46,12 +50,12 @@ func ClientSync(client RPCClient) {
 
 		// filesHashLists[file.Name()], err = GetFileHashList(ConcatPath(client.BaseDir, file.Name()), client.BlockSize)
 		// if err != nil {
-		// 	log.Panic("Error raised when sync'ing - %v\n", err)
+		// 	log.Panicf("Error raised when sync'ing - %v\n", err)
 		// }
 
 		hList, err := GetFileHashList(ConcatPath(client.BaseDir, file.Name()), client.BlockSize)
 		if err != nil {
-			log.Panic("Error raised when sync'ing - %v\n", err)
+			log.Panicf("Error raised when sync'ing - %v\n", err)
 		}
 
 		// If it is a new file, i.e. not yet in local index
@@ -111,7 +115,7 @@ func ClientSync(client RPCClient) {
 			// File not exist at remote
 			e := UploadFile(client, blockStoreAddr, localMetaData, &FileMetaData{Version: 0})
 			if e != nil {
-				log.Panic("Error raised when sync'ing - %v\n", err)
+				log.Panicf("Error raised when sync'ing - %v\n", err)
 			}
 		} else {
 			// File exist at remote,
@@ -119,7 +123,7 @@ func ClientSync(client RPCClient) {
 			if localMetaData.Version >= remoteMetaData.Version {
 				e := UploadFile(client, blockStoreAddr, localMetaData, remoteMetaData)
 				if e != nil {
-					log.Panic("Error raised when sync'ing - %v\n", err)
+					log.Panicf("Error raised when sync'ing - %v\n", err)
 				}
 			}
 		}
@@ -154,7 +158,7 @@ func GetFileHashList(path string, blockSize int) ([]string, error) {
 	// Open file
 	f, err := os.Open(path)
 	if err != nil {
-		// log.Panic("Error raised when sync'ing - %v\n", err)
+		// log.Panicf("Error raised when sync'ing - %v\n", err)
 		return []string{}, err
 	}
 
@@ -169,7 +173,7 @@ func GetFileHashList(path string, blockSize int) ([]string, error) {
 			if err == io.EOF {
 				break
 			}
-			// log.Panic("Error raised when sync'ing - %v\n", err)
+			// log.Panicf("Error raised when sync'ing - %v\n", err)
 			return []string{}, err
 		}
 
@@ -240,7 +244,7 @@ func DownloadFile(client RPCClient, blockStoreAddr string, localMetaData *FileMe
 	for _, h := range remoteMetaData.BlockHashList {
 		err = client.GetBlock(h, blockStoreAddr, &tmpBlock)
 		if err != nil {
-			log.Panic("Error raised when sync'ing - %v\n", err)
+			log.Panicf("Error raised when sync'ing - %v\n", err)
 		}
 		writer.Write(tmpBlock.BlockData[:tmpBlock.BlockSize])
 	}
